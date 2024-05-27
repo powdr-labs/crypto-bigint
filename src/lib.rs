@@ -175,6 +175,8 @@ mod traits;
 mod uint;
 mod wrapping;
 
+pub mod powdr;
+
 pub use crate::{
     checked::Checked,
     const_choice::{ConstChoice, ConstCtOption},
