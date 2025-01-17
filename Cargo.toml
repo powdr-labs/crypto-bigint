@@ -30,7 +30,7 @@ zeroize = { version = "1", optional = true, default-features = false }
 
 [target.'cfg(all(target_os = "zkvm", target_arch = "riscv32"))'.dependencies]
 getrandom = { version = "0.2", features = ["custom"] }
-powdr-riscv-runtime = { git = "https://github.com/powdr-labs/powdr.git"}
+powdr-riscv-runtime = { git = "https://github.com/powdr-labs/powdr.git", commit = "6d0e004" }
 
 [dev-dependencies]
 bincode = "1"
