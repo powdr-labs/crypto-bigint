@@ -270,7 +270,14 @@ where
         D: Deserializer<'de>,
     {
         #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
-        let r_inv: Uint<{ LIMBS }> = MOD::ONE.inv_odd_mod(&MOD::MODULUS).0;
+        let r_inv: Uint<{ LIMBS }> = ConstMontyForm::<MOD, LIMBS>::ONE.inv().unwrap();
+        // let inverter = MOD::precompute_inverter();
+        // let r_inv = inverter.invert(&MOD::ONE).unwrap();
+        // let x_mod = const_monty_form!(x, Modulus);
+        // let inverter = Modulus::precompute_inverter();
+        // let inv = inverter.invert(&x_mod).unwrap();
+        // let res = x_mod * inv;
+        // let r_inv: Uint<{ LIMBS }> = MOD::ONE.inv_odd_mod(&MOD::MODULUS).0;
 
         Uint::<LIMBS>::deserialize(deserializer).and_then(|montgomery_form| {
             if montgomery_form < MOD::MODULUS.0 {

@@ -1,9 +1,8 @@
 #![allow(unsafe_code)]
 use powdr_riscv_runtime::arith::{modmul_256_u8_le, modmul_256_u32_le};
 // use zeroize::Zeroize;
-use crate::{encoding::uint_to_le_bytes, Encoding, Uint, U256};
+use crate::{Encoding, Uint, BoxedUint, U256};
 use subtle::ConstantTimeLess;
-use core::mem;
 
 /// Powdr supports BigInt operations with a width of 256-bits as 8x32-bit words.
 pub(crate) const BIGINT_WIDTH_WORDS: usize = 8;
@@ -24,7 +23,7 @@ pub(crate) fn modmul_uint_256<const LIMBS: usize>(
     assert!(LIMBS == BIGINT_WIDTH_WORDS);
 
     // Convert to arrays of size 8 using slices
-    let a_words: [u32; 8] = a.to_words()[..8].try_into().expect("Array size mismatch");
+    let a_words: [u32; 8] = a.as_words ()[..8].try_into().expect("Array size mismatch");
     let b_words: [u32; 8] = b.to_words()[..8].try_into().expect("Array size mismatch");
     let modulus_words: [u32; 8] = modulus.to_words()[..8].try_into().expect("Array size mismatch");
 
@@ -38,6 +37,45 @@ pub(crate) fn modmul_uint_256<const LIMBS: usize>(
   
     // Convert back to Uint<LIMBS>
     let result = Uint::<LIMBS>::from_words(result_array);
+
+    // Assert that the Prover returned the canonical representation of the result, i.e. that it
+    // is fully reduced and has no multiples of the modulus included.
+    // NOTE: On a cooperating prover, this check will always evaluate to false, and therefore
+    // will have timing invariant with any secrets. If the prover is faulty, this check may
+    // leak secret information through timing, however this is out of scope since a faulty
+    // cannot be relied upon for the privacy of the inputs.
+    assert!(bool::from(result.ct_lt(&modulus)));
+    result
+}
+
+/// Modular multiplication of two 256-bit Uint values using the Powdr accelerator.
+/// Returns the fully reduced and normalized modular multiplication result.
+///
+/// NOTE: This method takes generic Uint values, but asserts that the input is 256 bits. It is
+/// provided because the main places we want to patch in multiplication use the generic Uint type,
+/// and specialization is not a stable Rust feature. When inlined, the assert should be removed.
+#[inline(always)]
+pub(crate) fn modmul_boxed_uint_256(
+    a: &BoxedUint,
+    b: &BoxedUint,
+    modulus: &BoxedUint,
+) -> BoxedUint {
+    // Assert that we are working with 8x32 Uints.
+    assert!(a.limbs.len() == BIGINT_WIDTH_WORDS);
+    assert!(b.limbs.len() == BIGINT_WIDTH_WORDS);
+    assert!(modulus.limbs.len() == BIGINT_WIDTH_WORDS);
+
+    // Convert to arrays of size 8 using slices
+    let a_words: [u32; 8] = a.to_words()[..8].try_into().expect("Array size mismatch");
+    let b_words: [u32; 8] = b.to_words()[..8].try_into().expect("Array size mismatch");
+    let modulus_words: [u32; 8] = modulus.to_words()[..8].try_into().expect("Array size mismatch");
+
+    // Perform modular multiplication
+    let result_words = unsafe { modmul_256_u32_le(a_words, b_words, modulus_words) };
+
+  
+    // Convert back to Uint<LIMBS>
+    let result = BoxedUint::from_words(result_words);
 
     // Assert that the Prover returned the canonical representation of the result, i.e. that it
     // is fully reduced and has no multiples of the modulus included.
