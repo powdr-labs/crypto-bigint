@@ -19,6 +19,7 @@ use subtle::Choice;
 
 #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
 use crate::powdr;
+use crate::U256;
 
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
@@ -153,17 +154,26 @@ impl BoxedMontyForm {
         debug_assert_eq!(integer.bits_precision(), params.bits_precision());
 
         #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
-        if integer.limbs.len() == powdr::BIGINT_WIDTH_WORDS {
+        if integer.nlimbs() == powdr::BIGINT_WIDTH_WORDS && params.modulus.nlimbs() == powdr::BIGINT_WIDTH_WORDS {
             // When working with U256 in the Powdr zkVM, leave the value in standard form.
             // Ensure that the input is reduced by passing it though a modmul by one.
             return Self {
                 montgomery_form: powdr::modmul_boxed_uint_256(
                     &integer,
-                    &BoxedUint::one(),
+                    // &BoxedUint::one(),
+                    &BoxedUint::from(U256::ONE),
                     &params.modulus.clone().get(),
                 ),
                 params: params.into(),
             };
+            // panic!();
+            // convert_to_montgomery(&mut integer, &params);
+
+            // #[allow(clippy::useless_conversion)]
+            // return Self {
+            //     montgomery_form: integer,
+            //     params: params.into(),
+            // }
         } else {
             convert_to_montgomery(&mut integer, &params);
 
@@ -172,6 +182,7 @@ impl BoxedMontyForm {
                 montgomery_form: integer,
                 params: params.into(),
             }
+            // panic!();
         }
 
         convert_to_montgomery(&mut integer, &params);
@@ -194,7 +205,7 @@ impl BoxedMontyForm {
             return Self {
                 montgomery_form: powdr::modmul_boxed_uint_256(
                     &integer,
-                    &BoxedUint::one(),
+                    &BoxedUint::from(U256::ONE),
                     &params.modulus,
                 ),
                 params,

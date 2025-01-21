@@ -14,7 +14,7 @@ pub(crate) const BIGINT_WIDTH_WORDS: usize = 8;
 /// provided because the main places we want to patch in multiplication use the generic Uint type,
 /// and specialization is not a stable Rust feature. When inlined, the assert should be removed.
 #[inline(always)]
-pub(crate) fn modmul_uint_256<const LIMBS: usize>(
+pub fn modmul_uint_256<const LIMBS: usize>(
     a: &Uint<LIMBS>,
     b: &Uint<LIMBS>,
     modulus: &Uint<LIMBS>,
@@ -55,7 +55,7 @@ pub(crate) fn modmul_uint_256<const LIMBS: usize>(
 /// provided because the main places we want to patch in multiplication use the generic Uint type,
 /// and specialization is not a stable Rust feature. When inlined, the assert should be removed.
 #[inline(always)]
-pub(crate) fn modmul_boxed_uint_256(
+pub fn modmul_boxed_uint_256(
     a: &BoxedUint,
     b: &BoxedUint,
     modulus: &BoxedUint,
@@ -72,7 +72,6 @@ pub(crate) fn modmul_boxed_uint_256(
 
     // Perform modular multiplication
     let result_words = unsafe { modmul_256_u32_le(a_words, b_words, modulus_words) };
-
   
     // Convert back to Uint<LIMBS>
     let result = BoxedUint::from_words(result_words);
