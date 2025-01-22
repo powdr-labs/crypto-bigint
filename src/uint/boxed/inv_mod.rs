@@ -6,6 +6,9 @@ use crate::{
 };
 use subtle::{Choice, ConstantTimeEq, ConstantTimeLess, CtOption};
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::{U256, powdr};
+
 impl BoxedUint {
     /// Computes the multiplicative inverse of `self` mod `modulus`, where `modulus` is odd.
     pub fn inv_odd_mod(&self, modulus: &Odd<Self>) -> CtOption<Self> {
@@ -98,6 +101,15 @@ impl PrecomputeInverter for Odd<BoxedUint> {
 /// Precompute a Bernstein-Yang inverter using `self` as the modulus.
 impl PrecomputeInverterWithAdjuster<BoxedUint> for Odd<BoxedUint> {
     fn precompute_inverter_with_adjuster(&self, adjuster: &BoxedUint) -> BoxedSafeGcdInverter {
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        // U256 in Powdr zkVM are left in standard form instead of Montgomery form.
+        // Therefore, inversion adjuster is 1 instead of R^2.
+        if adjuster.nlimbs() == powdr::BIGINT_WIDTH_WORDS {
+            return BoxedSafeGcdInverter::new(self, &BoxedUint::from(U256::ONE));
+        } else {
+            return BoxedSafeGcdInverter::new(self, adjuster);
+        }
+
         BoxedSafeGcdInverter::new(self, adjuster)
     }
 }

@@ -1,0 +1,25 @@
+[package]
+name = "bigint_test"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+simd = ["powdr/plonky3-simd"]
+
+[dependencies]
+powdr = { git = "https://github.com/powdr-labs/powdr.git", rev = "5456edb7802dad068ab7bb0eadcad26dd3bd5f14", features = ["plonky3"] }
+# powdr = { path = "../powdr-8_7_24/powdr/powdr", features = ["plonky3"] }
+
+serde = { version = "1.0", default-features = false, features = [
+  "alloc",
+  "derive",
+  "rc",
+] }
+serde_cbor = { version = "0.11.2", default-features = false, features = [
+  "alloc",
+] }
+
+env_logger = "0.10.2"
+log = "0.4.17"
+
+[workspace]

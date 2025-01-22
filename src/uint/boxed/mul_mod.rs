@@ -3,8 +3,11 @@
 use crate::{
     div_limb::mul_rem,
     modular::{BoxedMontyForm, BoxedMontyParams},
-    BoxedUint, Limb, MulMod, NonZero, Odd, WideWord, Word,
+    BoxedUint, Limb, MulMod, NonZero, Odd, WideWord, Word, U256
 };
+
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
 
 impl BoxedUint {
     /// Computes `self * rhs mod p` for odd `p`.
@@ -48,6 +51,15 @@ impl BoxedUint {
                 NonZero::<Limb>::new_unwrap(Limb(Word::MIN.wrapping_sub(c.0))),
             );
             return Self::from(reduced);
+        }
+
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        if self.nlimbs() == powdr::BIGINT_WIDTH_WORDS {
+            return powdr::modmul_boxed_uint_256(
+                &self,
+                &rhs,
+                &BoxedUint::from(U256::ZERO).wrapping_sub(&c.into()),
+            );
         }
 
         let product = self.mul(rhs);

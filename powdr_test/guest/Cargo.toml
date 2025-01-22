@@ -1,0 +1,15 @@
+[package]
+name = "powdr-guest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+powdr-riscv-runtime = { git = "https://github.com/powdr-labs/powdr.git", rev = "5456edb7802dad068ab7bb0eadcad26dd3bd5f14", features = ["std"] }
+# powdr-riscv-runtime = { path = "../../powdr-8_7_24/powdr/riscv-runtime", features = ["std"] }
+# crypto-bigint = { git = "https://github.com/powdr-labs/crypto-bigint.git", branch = "powdr" }
+# crypto-bigint = { path = "../../crypto-bigint", features = ["alloc"] } # "alloc" required to enable `multi_exponentiate_montgomery_form_slice()` to be tested; "serde" not enabled as crypto-bigint isn't patched for "serde"
+crypto-bigint = { path = "../../", features = ["alloc"] }
+bincode = "1"
+# serde = { version = "1.0", features = ["derive"] } # "serde" not enabled as crypto-bigint isn't patched for "serde"
+
+[workspace]
