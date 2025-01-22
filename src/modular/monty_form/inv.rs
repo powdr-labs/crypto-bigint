@@ -8,6 +8,9 @@ use crate::{
 use core::fmt;
 use subtle::CtOption;
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 impl<const SAT_LIMBS: usize, const UNSAT_LIMBS: usize> MontyForm<SAT_LIMBS>
 where
     Odd<Uint<SAT_LIMBS>>: PrecomputeInverter<
@@ -20,11 +23,32 @@ where
     ///
     /// If the number was invertible, the second element of the tuple is the truthy value,
     /// otherwise it is the falsy value (in which case the first element's value is unspecified).
-    pub const fn inv(&self) -> ConstCtOption<Self> {
-        let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
-            &self.params.modulus,
-            &self.params.r2,
-        );
+    pub fn inv(&self) -> ConstCtOption<Self> {
+        let inverter = {
+            #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+            {
+                // U256 in Powdr zkVM are left in standard form instead of Montgomery form.
+                // Therefore, inversion adjuster is 1 instead of R^2.
+                if SAT_LIMBS == powdr::BIGINT_WIDTH_WORDS {
+                    <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+                        &self.params.modulus,
+                        &Uint::<SAT_LIMBS>::ONE,
+                    )
+                } else {
+                    <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+                        &self.params.modulus,
+                        &self.params.r2,
+                    )
+                }
+            }
+            #[cfg(not(all(target_os = "zkvm", target_arch = "riscv32")))]
+            {
+                <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
+                    &self.params.modulus,
+                    &self.params.r2,
+                )
+            }
+        };
 
         let maybe_inverse = inverter.inv(&self.montgomery_form);
         let (inverse, inverse_is_some) = maybe_inverse.components_ref();
@@ -45,7 +69,7 @@ where
     ///
     /// This version is variable-time with respect to the value of `self`, but constant-time with
     /// respect to `self`'s `params`.
-    pub const fn inv_vartime(&self) -> ConstCtOption<Self> {
+    pub fn inv_vartime(&self) -> ConstCtOption<Self> {
         let inverter = <Odd<Uint<SAT_LIMBS>> as PrecomputeInverter>::Inverter::new(
             &self.params.modulus,
             &self.params.r2,

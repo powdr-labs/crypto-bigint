@@ -19,10 +19,24 @@ use subtle::{ConditionallySelectable, ConstantTimeLess};
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
+#[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+use crate::powdr;
+
 impl BoxedMontyForm {
     /// Multiplies by `rhs`.
     pub fn mul(&self, rhs: &Self) -> Self {
         debug_assert_eq!(&self.params, &rhs.params);
+
+        #[cfg(all(target_os = "zkvm", target_arch = "riscv32"))]
+        return Self {
+            montgomery_form: powdr::modmul_boxed_uint_256(
+                &self.montgomery_form,
+                &rhs.montgomery_form,
+                &self.params.modulus.clone().get(),
+            ),
+            params: self.params.clone(),
+        };
+
         let montgomery_form = MontyMultiplier::from(self.params.borrow())
             .mul(&self.montgomery_form, &rhs.montgomery_form);
 
